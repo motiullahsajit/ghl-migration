@@ -1,0 +1,44 @@
+* { box-sizing: border-box; }
+body {
+  font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+  margin: 0;
+  padding: 1.5rem;
+  background: #0f1419;
+  color: #e7ecf1;
+}
+header { margin-bottom: 1.5rem; }
+h1 { margin: 0 0 0.25rem; font-size: 1.5rem; }
+h2 { font-size: 1.1rem; margin-top: 2rem; }
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+.card {
+  background: #1a2332;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  border: 1px solid #2a3544;
+}
+.card .label { font-size: 0.75rem; color: #8b9cb3; text-transform: uppercase; }
+.card .value { font-size: 1.4rem; font-weight: 600; margin-top: 0.25rem; }
+.card.success .value { color: #3dd68c; }
+.card.failed .value { color: #f07178; }
+.card.pending .value { color: #ebc88d; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+th, td {
+  border: 1px solid #2a3544;
+  padding: 0.5rem;
+  text-align: left;
+}
+th { background: #1a2332; }
+#activity { list-style: none; padding: 0; font-size: 0.85rem; }
+#activity li {
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #2a3544;
+}
+.refresh { font-size: 0.9rem; color: #8b9cb3; }

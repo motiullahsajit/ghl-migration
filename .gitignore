@@ -1,0 +1,15 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+data/
+attachments/inbox/*
+attachments/uploaded/*
+attachments/unmatched/*
+attachments/failed/*
+!attachments/inbox/.gitkeep
+!attachments/uploaded/.gitkeep
+!attachments/unmatched/.gitkeep
+!attachments/failed/.gitkeep
+reports/
+_build_ghl_client.py

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GHL Migration Monitor</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header>
+    <h1>GHL Migration Monitor</h1>
+    <p id="runMeta">Loading…</p>
+    <label class="refresh">
+      <input type="checkbox" id="autoRefresh" checked /> Auto-refresh (10s)
+    </label>
+  </header>
+
+  <section id="overall" class="cards"></section>
+
+  <section>
+    <h2>Entities by type</h2>
+    <div id="entityCards" class="cards"></div>
+  </section>
+
+  <section>
+    <h2>Attachment files</h2>
+    <div id="fileCards" class="cards"></div>
+  </section>
+
+  <section>
+    <h2>Recent failures</h2>
+    <table id="failTable">
+      <thead>
+        <tr><th>Type</th><th>Key</th><th>Label</th><th>Error</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Recent activity</h2>
+    <ul id="activity"></ul>
+  </section>
+
+  <script src="/app.js"></script>
+</body>
+</html>
