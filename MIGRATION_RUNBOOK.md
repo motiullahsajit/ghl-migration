@@ -91,17 +91,30 @@ Migrate structured data. Resumable — re-run skips rows already marked success.
 python scripts/02_migrate_data.py --run-id 2026-05-23 --setup --audit
 ```
 
+`--audit` is **read-only** for invoices (GET only). It will not create probe invoices. Create/send/payment show as `NOT TESTED` until you dry-run or migrate. Duplicate-contact check still creates one test contact and deletes it.
+
 **Preview (no GHL writes):**
 
 ```powershell
 python scripts/02_migrate_data.py --run-id 2026-05-23 --dry-run
 ```
 
+**Pilot batch (recommended before full run):**
+
+```powershell
+python scripts/02_migrate_data.py --run-id 2026-05-23 --only contacts --dry-run
+python scripts/02_migrate_data.py --run-id 2026-05-23 --only contacts
+```
+
+Verify a few contacts in GHL, then run the full migration.
+
 **Live migration:**
 
 ```powershell
 python scripts/02_migrate_data.py --run-id 2026-05-23
 ```
+
+Transient API errors (429/5xx) retry automatically. Re-run with `--retry-failed` if rows still fail.
 
 **Retry failed rows only:**
 
@@ -235,3 +248,13 @@ python scripts/03_attach_documents.py --run-id 2026-05-23
 | `reports/exceptions_{run_id}.csv` | Failed rows |
 
 Spot-check in GHL: contacts, invoices (Issued/Paid), Documents tab on a few records.
+
+## Notes
+
+**Script 1 — Excel file:** You must pass `--excel path\to\file.xlsx`. The script does not auto-scan for Excel files.
+
+**Import phones:** Contacts without a phone get a unique placeholder in the `555-01XX` range (not a real line). Used only to avoid duplicate-phone API errors.
+
+**Sensitive data:** Do not commit `.env`, production Excel, or attachments. If using AI tools (e.g. Cursor), keep `.env` and data folders out of indexing; confirm PII/banking fields may legally be stored in GHL before migrating.
+
+**OCR / Claude:** Use `--use-claude` on Script 4 only with client approval and a DPA if documents contain SIN or other regulated data.

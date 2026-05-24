@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+import sys
 import time
 from datetime import date, timedelta
 from typing import Any
@@ -33,12 +34,17 @@ class GHLClient:
 
     def _request(self, method: str, path: str, **kwargs: Any) -> dict[str, Any]:
         url = f"{API_BASE}{path}"
-        resp = self.session.request(method, url, timeout=90, **kwargs)
-        if resp.status_code >= 400:
-            raise RuntimeError(f"{method} {path} -> {resp.status_code}: {resp.text}")
-        if resp.text:
-            return resp.json()
-        return {}
+        for attempt in range(5):
+            resp = self.session.request(method, url, timeout=90, **kwargs)
+            if resp.status_code in (429, 502, 503, 504) and attempt < 4:
+                time.sleep(min(2**attempt, 30))
+                continue
+            if resp.status_code >= 400:
+                raise RuntimeError(f"{method} {path} -> {resp.status_code}: {resp.text}")
+            if resp.text:
+                return resp.json()
+            return {}
+        raise RuntimeError(f"{method} {path} failed after retries (rate limit or server error)")
 
     def _invoice_location_params(self) -> dict[str, str]:
         return {"altId": self.location_id, "altType": "location"}
@@ -81,94 +87,36 @@ class GHLClient:
         }
         return self._tags_by_name
 
-    def check_invoice_permissions(self) -> dict[str, bool]:
-        """Probe which invoice endpoints the current token can actually call."""
+    def check_invoice_permissions(self) -> dict[str, bool | None]:
+        """Read-only invoice permission check (GET only — no probe invoices created)."""
         url = f"{API_BASE}/invoices/"
-        list_ok = False
-        create_ok = False
-        get_by_id_ok = False
-        send_ok = False
-        payment_ok = False
-        probe_id: str | None = None
+        inv_params = self._invoice_location_params()
 
         resp = self.session.get(
             url,
-            params={"altId": self.location_id, "altType": "location", "limit": "1", "offset": "0"},
+            params={**inv_params, "limit": "1", "offset": "0"},
             timeout=60,
         )
         list_ok = resp.status_code < 400
+        get_by_id_ok: bool | None = None
+        probe_id: str | None = None
         if list_ok:
             invoices = (resp.json() or {}).get("invoices") or []
             if invoices:
                 probe_id = invoices[0].get("_id")
 
-        if not probe_id:
-            biz = self.get_business_details()
-            create_resp = self.session.post(
-                url,
-                json={
-                    "altId": self.location_id,
-                    "altType": "location",
-                    "name": "ZOHO-TOKEN-PROBE",
-                    "businessDetails": biz,
-                    "contactDetails": {
-                        "name": "Token Probe",
-                        "email": "zoho-probe@books-import.local",
-                        "phone": "+15555550199",
-                    },
-                    "currency": "CAD",
-                    "items": [{"name": "Probe", "currency": "CAD", "amount": 1, "qty": 1}],
-                    "issueDate": date.today().isoformat(),
-                    "dueDate": (date.today() + timedelta(days=30)).isoformat(),
-                },
-                timeout=60,
-            )
-            create_ok = create_resp.status_code < 400
-            if create_ok:
-                probe_id = (create_resp.json() or {}).get("_id")
-        else:
-            create_ok = True
-
-        inv_params = self._invoice_location_params()
-        inv_ctx = self._invoice_location_context()
         if probe_id:
             get_resp = self.session.get(
                 f"{url}{probe_id}", params=inv_params, timeout=60
             )
             get_by_id_ok = get_resp.status_code < 400
-            uid = self.get_default_user_id()
-            send_body: dict[str, Any] = {
-                "action": "send_manually",
-                "liveMode": True,
-                **inv_ctx,
-            }
-            if uid:
-                send_body["userId"] = uid
-            send_resp = self.session.post(
-                f"{url}{probe_id}/send",
-                params=inv_params,
-                json=send_body,
-                timeout=60,
-            )
-            send_ok = send_resp.status_code < 400
-            inv_status = (get_resp.json() or {}).get("status") if get_by_id_ok else None
-            if inv_status == "paid":
-                payment_ok = True
-            else:
-                pay_resp = self.session.post(
-                    f"{url}{probe_id}/record-payment",
-                    params=inv_params,
-                    json={"mode": "cash", "amount": 1, **inv_ctx},
-                    timeout=60,
-                )
-                payment_ok = pay_resp.status_code < 400
 
         return {
             "list": list_ok,
-            "create": create_ok,
+            "create": None,
             "get_by_id": get_by_id_ok,
-            "send": send_ok,
-            "record_payment": payment_ok,
+            "send": None,
+            "record_payment": None,
         }
 
     def check_duplicates_allowed(self) -> bool:

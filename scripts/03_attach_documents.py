@@ -21,7 +21,7 @@ from migration.attachment_index import (
 )
 from migration.ghl_client import GHLClient
 from migration.registry import MigrationRegistry
-from migration.utils import sha256_file
+from migration.utils import sanitize_error, sha256_file
 
 
 def ensure_dirs(root: Path) -> dict[str, Path]:
@@ -194,7 +194,7 @@ def main() -> int:
                 status="failed",
                 ghl_contact_id=cid,
                 match_method=method,
-                error=str(exc)[:500],
+                error=sanitize_error(str(exc)),
             )
             print(f"  FAIL {rel}: {exc}", file=sys.stderr)
             errors += 1

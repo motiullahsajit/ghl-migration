@@ -8,8 +8,21 @@ function el(id) {
 function card(label, value, cls = "") {
   const d = document.createElement("div");
   d.className = `card ${cls}`;
-  d.innerHTML = `<div class="label">${label}</div><div class="value">${value}</div>`;
+  const lab = document.createElement("div");
+  lab.className = "label";
+  lab.textContent = label;
+  const val = document.createElement("div");
+  val.className = "value";
+  val.textContent = String(value);
+  d.appendChild(lab);
+  d.appendChild(val);
   return d;
+}
+
+function clearChildren(node) {
+  while (node.firstChild) {
+    node.removeChild(node.firstChild);
+  }
 }
 
 async function fetchJson(path) {
@@ -22,7 +35,7 @@ function renderStatus(data) {
   el("runMeta").textContent = `Run: ${data.run_id} | Excel: ${data.excel_path || "—"} | Started: ${data.started_at || "—"}`;
 
   const overall = el("overall");
-  overall.innerHTML = "";
+  clearChildren(overall);
   let total = 0,
     ok = 0,
     fail = 0;
@@ -39,7 +52,7 @@ function renderStatus(data) {
   overall.appendChild(card("Failed", fail, "failed"));
 
   const ec = el("entityCards");
-  ec.innerHTML = "";
+  clearChildren(ec);
   for (const [etype, st] of Object.entries(data.entities || {})) {
     const line = Object.entries(st)
       .map(([k, v]) => `${k}: ${v}`)
@@ -48,7 +61,7 @@ function renderStatus(data) {
   }
 
   const fc = el("fileCards");
-  fc.innerHTML = "";
+  clearChildren(fc);
   for (const [k, v] of Object.entries(data.files || {})) {
     fc.appendChild(card(k, v, k === "uploaded" ? "success" : k === "failed" ? "failed" : "pending"));
   }
@@ -56,17 +69,26 @@ function renderStatus(data) {
 
 function renderFailures(rows) {
   const tbody = el("failTable").querySelector("tbody");
-  tbody.innerHTML = "";
+  clearChildren(tbody);
   for (const r of rows) {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${r.entity_type || ""}</td><td>${(r.zoho_key || "").slice(0, 40)}</td><td>${r.display_label || ""}</td><td>${(r.error || "").slice(0, 120)}</td>`;
+    for (const text of [
+      r.entity_type || "",
+      (r.zoho_key || "").slice(0, 40),
+      r.display_label || "",
+      (r.error || "").slice(0, 120),
+    ]) {
+      const td = document.createElement("td");
+      td.textContent = text;
+      tr.appendChild(td);
+    }
     tbody.appendChild(tr);
   }
 }
 
 function renderActivity(rows) {
   const ul = el("activity");
-  ul.innerHTML = "";
+  clearChildren(ul);
   for (const r of rows) {
     const li = document.createElement("li");
     li.textContent = `${r.created_at || ""} [${r.event_type}] ${r.message || ""}`;

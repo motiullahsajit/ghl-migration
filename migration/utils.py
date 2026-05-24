@@ -57,9 +57,25 @@ def normalize_phone(phone: Any) -> str | None:
 
 
 def unique_import_phone(zoho_key: str) -> str:
-    """Deterministic unique phone per registry key (avoids GHL duplicate-phone collisions)."""
-    n = int(hashlib.sha256(zoho_key.encode("utf-8")).hexdigest()[:7], 16) % 9_000_000 + 1_000_000
-    return f"+1{n}"
+    """
+    Placeholder NANP number when Zoho has no phone (555-01XX range).
+    Unique per registry key to avoid GHL duplicate-phone errors — not a real subscriber line.
+    """
+    n = int(hashlib.sha256(zoho_key.encode("utf-8")).hexdigest()[:4], 16) % 10000
+    return f"+1555010{n:04d}"
+
+
+def sanitize_error(message: str, max_len: int = 2000) -> str:
+    """Truncate and redact tokens before persisting API errors in the registry."""
+    text = str(message)[:max_len]
+    text = re.sub(r"Bearer\s+\S+", "Bearer [REDACTED]", text, flags=re.IGNORECASE)
+    text = re.sub(
+        r"Authorization:\s*\S+",
+        "Authorization: [REDACTED]",
+        text,
+        flags=re.IGNORECASE,
+    )
+    return text
 
 
 def parse_display_name(name: str) -> tuple[str, str]:

@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterator
 
+from migration.utils import sanitize_error
+
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -222,7 +224,7 @@ class MigrationRegistry:
                 UPDATE entities SET status = 'failed', error = ?, updated_at = ?
                 WHERE run_id = ? AND zoho_key = ?
                 """,
-                (error[:2000], utc_now(), run_id, zoho_key),
+                (sanitize_error(error), utc_now(), run_id, zoho_key),
             )
 
     def mark_skipped(self, run_id: str, zoho_key: str, reason: str) -> None:
@@ -232,7 +234,7 @@ class MigrationRegistry:
                 UPDATE entities SET status = 'skipped', error = ?, updated_at = ?
                 WHERE run_id = ? AND zoho_key = ?
                 """,
-                (reason[:2000], utc_now(), run_id, zoho_key),
+                (sanitize_error(reason), utc_now(), run_id, zoho_key),
             )
 
     def list_entities(
@@ -295,6 +297,8 @@ class MigrationRegistry:
         ocr_engine: str | None = None,
     ) -> None:
         now = utc_now()
+        if error is not None:
+            error = sanitize_error(error)
         with self._conn() as conn:
             conn.execute(
                 """

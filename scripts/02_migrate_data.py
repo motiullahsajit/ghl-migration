@@ -31,7 +31,15 @@ def print_audit(client: GHLClient) -> None:
         ("send", "Issue invoice"),
         ("record_payment", "Record payment"),
     ]:
-        print(f"    [{'OK' if perms.get(key) else 'DENIED'}] {label}")
+        val = perms.get(key)
+        if val is None:
+            status = "NOT TESTED"
+        elif val:
+            status = "OK"
+        else:
+            status = "DENIED"
+        print(f"    [{status}] {label}")
+    print("    (Audit uses GET only — create/send/payment need a dry-run or small pilot batch)")
 
 
 def main() -> int:
